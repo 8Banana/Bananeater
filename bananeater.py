@@ -74,9 +74,16 @@ class WormGame:
         """Add a piece to the snake."""
         by, bx = self.snake_parts[-1]
         hy, hx = by + direction[0], bx + direction[1]
-        self.board[by][bx] = SNAKE_BODY
-        self.board[hy][hx] = SNAKE_HEAD
-        self.snake_parts.append((hy, hx))
+        try:
+            growing_on_empty = self.board[hy][hx] == EMPTY
+        except IndexError:
+            return False
+        else:
+            if growing_on_empty:
+                self.board[by][bx] = SNAKE_BODY
+                self.board[hy][hx] = SNAKE_HEAD
+                self.snake_parts.append((hy, hx))
+            return growing_on_empty
 
     def play_game(self, stdscr):
         """Play the game until the heat death of the universe."""
