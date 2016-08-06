@@ -25,13 +25,32 @@ def _replicate(count, item):
     return [copy.deepcopy(item) for _ in range(count)]
 
 
+def random_moves(self):
+    """A move strategy that moves randomly."""
+    time.sleep(.1)
+    directions = [(0, 1), (1, 0), (-1, 0), (0, -1)]
+    random.shuffle(directions)
+    for direction in directions:
+        landed_on = self.move_worm(direction)
+        if landed_on[0] == ON_EMPTY:
+            break
+        elif landed_on[0] == ON_FOOD:
+            self.place_food()
+            self.parts_missing += landed_on[1]
+            break
+    else:
+        time.sleep(1)
+        self.reset_game()
+
+
 class WormGame:
     """Class which handles the game itself without the I/O."""
 
-    def __init__(self, rows, columns):
+    def __init__(self, rows, columns, move_strategy):
         """Initialize a WormGame instance."""
         self.height = rows
         self.width = columns
+        self.move_strategy = move_strategy
         self.reset_game()
 
     def reset_game(self):
@@ -108,28 +127,15 @@ class WormGame:
             hy, hx = self.snake_parts[-1]
             stdscr.move(hy + VERTICAL_PADDING, hx + HORIZONTAL_PADDING)
             stdscr.refresh()
-
-            time.sleep(.1)
-            directions = [(0, 1), (1, 0), (-1, 0), (0, -1)]
-            random.shuffle(directions)
-            for direction in directions:
-                landed_on = self.move_worm(direction)
-                if landed_on[0] == ON_EMPTY:
-                    break
-                elif landed_on[0] == ON_FOOD:
-                    self.place_food()
-                    self.parts_missing += landed_on[1]
-                    break
-            else:
-                time.sleep(1)
-                self.reset_game()
+            self.move_strategy(self)
 
 
 def main():
     """Play a clone of the bsdgames worm game."""
     width, height = shutil.get_terminal_size()
     game = WormGame(height - VERTICAL_PADDING * 2,
-                    width - HORIZONTAL_PADDING * 2)
+                    width - HORIZONTAL_PADDING * 2,
+                    random_moves)
     try:
         curses.wrapper(game.play_game)
     except KeyboardInterrupt:
