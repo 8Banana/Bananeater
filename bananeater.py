@@ -8,7 +8,7 @@ import shutil
 import time
 
 EMPTY = ' '
-FOOD = '*'
+FOODS = {str(n): n for n in range(1, 10)}
 SNAKE_BODY = 'o'
 SNAKE_HEAD = '@'
 
@@ -45,12 +45,12 @@ class WormGame:
         assert self.board[hy][hx] == SNAKE_HEAD
         nhy, nhx = hy + direction[0], hx + direction[1]
         if nhy < 0 or nhx < 0:
-            return OUT_OF_BOUNDS
+            return (OUT_OF_BOUNDS,)
         try:
             going_to_empty = self.board[nhy][nhx] == EMPTY
-            going_to_food = self.board[nhy][nhx] == FOOD
+            going_to_food = self.board[nhy][nhx] in FOODS
         except IndexError:
-            return OUT_OF_BOUNDS
+            return (OUT_OF_BOUNDS,)
         if going_to_empty or going_to_food:
             if self.parts_missing == 0:
                 ty, tx = self.snake_parts.popleft()
@@ -60,18 +60,21 @@ class WormGame:
             self.board[hy][hx] = SNAKE_BODY
             self.board[nhy][nhx] = SNAKE_HEAD
             self.snake_parts.append((nhy, nhx))
-            return ON_EMPTY if going_to_empty else ON_FOOD
+            if going_to_empty:
+                return (ON_EMPTY,)
+            elif going_to_food:
+                return (ON_FOOD, FOODS[self.board[nhy][nhx]])
         else:
-            return ON_SNAKE
+            return (ON_SNAKE,)
 
     def place_food(self):
         """Place food in a random position."""
-        assert not any(col == FOOD for row in self.board for col in row)
+        assert not any(col in FOODS for row in self.board for col in row)
         while True:
             y = random.randrange(self.height)
             x = random.randrange(self.width)
             if self.board[y][x] == EMPTY:
-                self.board[y][x] = FOOD
+                self.board[y][x] = random.choice(tuple(FOODS))
                 break
 
     def play_game(self, stdscr):
@@ -97,12 +100,12 @@ class WormGame:
             random.shuffle(directions)
             while directions:
                 direction = directions.pop()
-                return_value = self.move_worm(direction)
-                if return_value == EMPTY:
+                landed_on = self.move_worm(direction)
+                if landed_on[0] == EMPTY:
                     break
-                elif return_value == ON_FOOD:
+                elif landed_on[0] == ON_FOOD:
                     self.place_food()
-                    self.parts_missing += 1
+                    self.parts_missing += landed_on[1]
                     break
 
 
