@@ -17,6 +17,9 @@ ON_FOOD = 1
 ON_SNAKE = 2
 OUT_OF_BOUNDS = 4
 
+VERTICAL_PADDING = 2
+HORIZONTAL_PADDING = VERTICAL_PADDING
+
 
 def _replicate(count, item):
     return [copy.deepcopy(item) for _ in range(count)]
@@ -29,7 +32,11 @@ class WormGame:
         """Initialize a WormGame instance."""
         self.height = rows
         self.width = columns
-        self.board = _replicate(rows, _replicate(columns, EMPTY))
+        self.reset_game()
+
+    def reset_game(self):
+        """Restore the game to a random initial state."""
+        self.board = _replicate(self.height, _replicate(self.width, EMPTY))
         self.snake_parts = collections.deque()
         self.parts_missing = 0
         for i in range(1, 10):
@@ -38,6 +45,7 @@ class WormGame:
             else:
                 self.board[19][i] = SNAKE_BODY
             self.snake_parts.append((19, i))
+        self.place_food()
 
     def move_worm(self, direction):
         """Move the worm in a direction."""
@@ -57,13 +65,17 @@ class WormGame:
                 self.board[ty][tx] = EMPTY
             else:
                 self.parts_missing -= 1
-            self.board[hy][hx] = SNAKE_BODY
-            self.board[nhy][nhx] = SNAKE_HEAD
-            self.snake_parts.append((nhy, nhx))
             if going_to_empty:
+                self.board[hy][hx] = SNAKE_BODY
+                self.board[nhy][nhx] = SNAKE_HEAD
+                self.snake_parts.append((nhy, nhx))
                 return (ON_EMPTY,)
             elif going_to_food:
-                return (ON_FOOD, FOODS[self.board[nhy][nhx]])
+                old_char = self.board[nhy][nhx]
+                self.board[hy][hx] = SNAKE_BODY
+                self.board[nhy][nhx] = SNAKE_HEAD
+                self.snake_parts.append((nhy, nhx))
+                return (ON_FOOD, FOODS[old_char])
         else:
             return (ON_SNAKE,)
 
@@ -81,40 +93,47 @@ class WormGame:
         """Play the game until the heat death of the universe."""
         stdscr.scrollok(0)
         while True:
-            for y in (1, self.height + 2):
-                for x in range(1, self.width + 3):
+            for y in (VERTICAL_PADDING - 1, self.height + VERTICAL_PADDING):
+                for x in range(HORIZONTAL_PADDING - 1,
+                               self.width + HORIZONTAL_PADDING + 1):
                     stdscr.addch(y, x, "#")
-            for x in (1, self.width + 2):
-                for y in range(1, self.height + 2):
+            for x in (HORIZONTAL_PADDING - 1, self.width + HORIZONTAL_PADDING):
+                for y in range(VERTICAL_PADDING,
+                               self.height + VERTICAL_PADDING):
                     stdscr.addch(y, x, "#")
-            for y, row in enumerate(self.board, start=2):
-                stdscr.move(y, 2)
+            for y, row in enumerate(self.board, start=VERTICAL_PADDING):
+                stdscr.move(y, HORIZONTAL_PADDING)
                 for col in row:
                     stdscr.addch(ord(col))
             hy, hx = self.snake_parts[-1]
-            stdscr.move(hy + 2, hx + 2)
+            stdscr.move(hy + VERTICAL_PADDING, hx + HORIZONTAL_PADDING)
             stdscr.refresh()
 
             time.sleep(.1)
             directions = [(0, 1), (1, 0), (-1, 0), (0, -1)]
             random.shuffle(directions)
-            while directions:
-                direction = directions.pop()
+            for direction in directions:
                 landed_on = self.move_worm(direction)
-                if landed_on[0] == EMPTY:
+                if landed_on[0] == ON_EMPTY:
                     break
                 elif landed_on[0] == ON_FOOD:
                     self.place_food()
                     self.parts_missing += landed_on[1]
                     break
+            else:
+                time.sleep(1)
+                self.reset_game()
 
 
 def main():
     """Play a clone of the bsdgames worm game."""
     width, height = shutil.get_terminal_size()
-    game = WormGame(height - 4, width - 4)
-    game.place_food()
-    curses.wrapper(game.play_game)
+    game = WormGame(height - VERTICAL_PADDING * 2,
+                    width - HORIZONTAL_PADDING * 2)
+    try:
+        curses.wrapper(game.play_game)
+    except KeyboardInterrupt:
+        pass
 
 if __name__ == "__main__":
     main()
