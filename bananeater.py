@@ -31,6 +31,7 @@ class WormGame:
         self.width = columns
         self.board = _replicate(rows, _replicate(columns, EMPTY))
         self.snake_parts = collections.deque()
+        self.parts_missing = 0
         for i in range(1, 10):
             if i == 9:
                 self.board[19][i] = SNAKE_HEAD
@@ -51,8 +52,11 @@ class WormGame:
         except IndexError:
             return OUT_OF_BOUNDS
         if going_to_empty or going_to_food:
-            ty, tx = self.snake_parts.popleft()
-            self.board[ty][tx] = EMPTY
+            if self.parts_missing == 0:
+                ty, tx = self.snake_parts.popleft()
+                self.board[ty][tx] = EMPTY
+            else:
+                self.parts_missing -= 1
             self.board[hy][hx] = SNAKE_BODY
             self.board[nhy][nhx] = SNAKE_HEAD
             self.snake_parts.append((nhy, nhx))
@@ -69,21 +73,6 @@ class WormGame:
             if self.board[y][x] == EMPTY:
                 self.board[y][x] = FOOD
                 break
-
-    def grow_snake(self, direction):
-        """Add a piece to the snake."""
-        by, bx = self.snake_parts[-1]
-        hy, hx = by + direction[0], bx + direction[1]
-        try:
-            growing_on_empty = self.board[hy][hx] == EMPTY
-        except IndexError:
-            return False
-        else:
-            if growing_on_empty:
-                self.board[by][bx] = SNAKE_BODY
-                self.board[hy][hx] = SNAKE_HEAD
-                self.snake_parts.append((hy, hx))
-            return growing_on_empty
 
     def play_game(self, stdscr):
         """Play the game until the heat death of the universe."""
@@ -112,8 +101,8 @@ class WormGame:
                 if return_value == EMPTY:
                     break
                 elif return_value == ON_FOOD:
-                    self.grow_snake(direction)
                     self.place_food()
+                    self.parts_missing += 1
                     break
 
 
