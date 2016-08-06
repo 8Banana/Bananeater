@@ -37,6 +37,7 @@ def random_moves(self):
         elif landed_on[0] == ON_FOOD:
             self.place_food()
             self.parts_missing += landed_on[1]
+            self.score += landed_on[1]
             break
     else:
         time.sleep(1)
@@ -58,6 +59,7 @@ class WormGame:
         self.board = _replicate(self.height, _replicate(self.width, EMPTY))
         self.snake_parts = collections.deque()
         self.parts_missing = 0
+        self.score = 0
         for i in range(1, 10):
             if i == 9:
                 self.board[19][i] = SNAKE_HEAD
@@ -124,6 +126,10 @@ class WormGame:
                 stdscr.move(y, HORIZONTAL_PADDING)
                 for col in row:
                     stdscr.addch(ord(col))
+            if VERTICAL_PADDING >= 2:
+                stdscr.addstr(VERTICAL_PADDING - 2,
+                              HORIZONTAL_PADDING - 1,
+                              "Score: {}".format(self.score))
             hy, hx = self.snake_parts[-1]
             stdscr.move(hy + VERTICAL_PADDING, hx + HORIZONTAL_PADDING)
             stdscr.refresh()
